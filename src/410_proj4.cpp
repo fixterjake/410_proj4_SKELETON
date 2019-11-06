@@ -86,7 +86,19 @@ void audit_results() {
 
 int main()
 {
-	//TODO your code here
+	std::vector<std::thread> threads;
+	int numThreads = 2;
+	for (int i = 1; i <= numThreads; i++) {
+		if (i == 1) {
+			threads.push_back(std::thread(doWaiter, i, "in3.txt"));
+		}
+		threads.push_back(std::thread(doBaker, i));
+	}
+
+	for (std::thread &thread : threads) {
+		thread.join();
+	}
+	audit_results();
 	return SUCCESS;
 }
 

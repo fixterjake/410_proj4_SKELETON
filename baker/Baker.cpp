@@ -1,5 +1,5 @@
 #include <mutex>
-#include <cmath>
+#include <iostream>
 #include <vector>
 
 #include "../includes/baker.h"
@@ -14,50 +14,58 @@ Baker::~Baker()
 {
 }
 
-// Method to bake donuts regardless of how many boxes are needed
-void bake(ORDER &order, int numDonuts, int numBoxes) {
-	std::vector<DONUT> donuts;
-	std::vector<Box> boxes;
-	// Bake all donuts at once
-	for (int i = 0; i < numDonuts; i++) {
-		donuts.push_back(DONUT());
-	}
-	// Box all donuts
-	for (int i = 0; i < numBoxes; i++) {
-		Box box;
-		for (int j = 0; j < 12; j++) {
-			if (numDonuts == 0) {
-				break;
-			}
-			box.addDonut(donuts.front());
-			donuts.erase(donuts.begin());
-		}
-		boxes.push_back(box);
-	}
-	order.boxes = boxes;
-}
-
 void Baker::bake_and_box(ORDER &anOrder) {
-	// Check how many boxes are needed
-	if (anOrder.number_donuts % 12 != 0) {
-		int numBoxes = std::round(anOrder.number_donuts / 12) + 1;
-		int numDonuts = anOrder.number_donuts;
-		bake(anOrder, numDonuts, numBoxes);
+	// Get number of donuts & boxes
+	int numDonuts = anOrder.number_donuts;
+	int numBoxes = numDonuts / 12;
+
+	// Fill each box with donuts
+	std::vector<Box> theBoxes;
+	for (int boxes = 0; boxes < numBoxes; boxes++) {
+		Box box;
+		for (int donuts = 0; donuts < numDonuts; donuts++) {
+			DONUT donut;
+			box.addDonut(donut);
+		}
+		theBoxes.push_back(box);
 	}
-	// Else just bake donuts with easy number of boxes
-	else {
-		int numBoxes = anOrder.number_donuts / 12;
-		int numDonuts = anOrder.number_donuts;
-		bake(anOrder, numDonuts, numBoxes);
+
+	// Check if an extra box is needed
+	if (numDonuts % 12 > 0) {
+		Box box;
+		for (int k = 0; k < numDonuts % 12; k++) {
+			DONUT d;
+			box.addDonut(d);
+		}
+		theBoxes.push_back(box);
 	}
+	anOrder.boxes = theBoxes;
 }
 
 void Baker::beBaker() {
-	if (order_in_Q.size() > 0 || b_WaiterIsFinished == true) {
-		// Iterate through orders and bake them
-		for (int i = 0; i < (int)order_in_Q.size(); i++) {
-			bake_and_box(order_in_Q.front());
+	while (true) {
+		unique_lock<mutex> inLock(mutex_order_inQ);
+		while (order_in_Q.empty() && !b_WaiterIsFinished) {
+			cv_order_inQ.wait(inLock);
+		}
+		// If the queue is not empty, bake and box the orders
+		if (!order_in_Q.empty()) {
+			ORDER order;
+			order = order_in_Q.front();
 			order_in_Q.pop();
+
+			// Unlock as no longer accessing queue
+			inLock.unlock();
+
+			bake_and_box(order);
+
+			lock_guard<mutex> outLock(mutex_order_outQ);
+			order_out_Vector.push_back(order);
+		}
+
+		// No more orders so exit
+		if (order_in_Q.empty() && b_WaiterIsFinished) {
+			break;
 		}
 	}
 }
