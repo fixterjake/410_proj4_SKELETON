@@ -1,3 +1,8 @@
+/**
+ * Jacob Boyles & Avery Kitches
+ * Jacob - 50%
+ * Avery - 50%
+ */
 #include <mutex>
 #include <iostream>
 #include <vector>
@@ -44,7 +49,7 @@ void Baker::bake_and_box(ORDER &anOrder) {
 
 void Baker::beBaker() {
 	while (true) {
-		unique_lock<mutex> inLock(mutex_order_inQ);
+		std::unique_lock<std::mutex> inLock(mutex_order_inQ);
 		while (order_in_Q.empty() && !b_WaiterIsFinished) {
 			cv_order_inQ.wait(inLock);
 		}
@@ -59,7 +64,7 @@ void Baker::beBaker() {
 
 			bake_and_box(order);
 
-			lock_guard<mutex> outLock(mutex_order_outQ);
+			std::lock_guard<std::mutex> outLock(mutex_order_outQ);
 			order_out_Vector.push_back(order);
 		}
 

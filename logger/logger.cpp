@@ -1,3 +1,8 @@
+/**
+ * Jacob Boyles & Avery Kitches
+ * Jacob - 50%
+ * Avery - 50%
+ */
 #include "../includes/logger.h"
 using namespace std;
 
